@@ -60,7 +60,7 @@ class MapManager {
     
     // Проверка авторизации прилоежния для исопользования сервисов геолокации
     func checkLocationAuthorization(mapView: MKMapView, segueIdentifier: String) {
-        switch CLLocationManager.authorizationStatus() {
+        switch locationManager.authorizationStatus {
         case .authorizedWhenInUse:
             mapView.showsUserLocation = true
             if segueIdentifier == "getAddress" { showUserLocation(mapView: mapView) }
