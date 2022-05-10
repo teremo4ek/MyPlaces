@@ -1,16 +1,9 @@
-//
-//  NewPlaceViewController.swift
-//  MyPlaces
-//
-//  Created by Alexey Efimov on 21/11/2018.
-//  Copyright © 2018 Alexey Efimov. All rights reserved.
-//
 
 import UIKit
 
 class NewPlaceViewController: UITableViewController {
     
-    var currentPlace: Place?
+    var currentPlace: Place!
     var imageIsChanged = false
     
     @IBOutlet var saveButton: UIBarButtonItem!
@@ -19,11 +12,15 @@ class NewPlaceViewController: UITableViewController {
     @IBOutlet var placeName: UITextField!
     @IBOutlet var placeLocation: UITextField!
     @IBOutlet var placeType: UITextField!
+    @IBOutlet var ratingControl: RatingControl!
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        tableView.tableFooterView = UIView()
+        tableView.tableFooterView = UIView(frame: CGRect(x: 0,
+                                                         y: 0,
+                                                         width: tableView.frame.size.width,
+                                                         height: 1))
         saveButton.isEnabled = false
         placeName.addTarget(self, action: #selector(textFieldChanged), for: .editingChanged)
         setupEditScreen()
@@ -67,22 +64,36 @@ class NewPlaceViewController: UITableViewController {
         }
     }
     
+    // MARK: Navigation
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        
+        guard
+            let identifier = segue.identifier,
+            let mapVC = segue.destination as? MapViewController
+            else { return }
+        
+        mapVC.incomeSegueIdentifier = identifier
+        mapVC.mapViewControllerDelegate = self
+        
+        if identifier == "showPlace" {
+            mapVC.place.name = placeName.text!
+            mapVC.place.location = placeLocation.text
+            mapVC.place.type = placeType.text
+            mapVC.place.imageData = placeImage.image?.pngData()
+        }
+    }
+    
     func savePlace() {
         
-        var image: UIImage?
-        
-        if imageIsChanged {
-            image = placeImage.image
-        } else {
-            image = #imageLiteral(resourceName: "imagePlaceholder")
-        }
-        
+        let image = imageIsChanged ? placeImage.image : #imageLiteral(resourceName: "imagePlaceholder")
         let imageData = image?.pngData()
         
         let newPlace = Place(name: placeName.text!,
                              location: placeLocation.text,
                              type: placeType.text,
-                             imageData: imageData)
+                             imageData: imageData,
+                             rating: Double(ratingControl.rating))
         
         if currentPlace != nil {
             try! realm.write {
@@ -90,6 +101,7 @@ class NewPlaceViewController: UITableViewController {
                 currentPlace?.location = newPlace.location
                 currentPlace?.type = newPlace.type
                 currentPlace?.imageData = newPlace.imageData
+                currentPlace?.rating = newPlace.rating
             }
         } else {
             StorageManager.saveObject(newPlace)
@@ -109,6 +121,7 @@ class NewPlaceViewController: UITableViewController {
             placeName.text = currentPlace?.name
             placeLocation.text = currentPlace?.location
             placeType.text = currentPlace?.type
+            ratingControl.rating = Int(currentPlace.rating)
         }
     }
     
@@ -171,5 +184,12 @@ extension NewPlaceViewController: UIImagePickerControllerDelegate, UINavigationC
         imageIsChanged = true
         
         dismiss(animated: true)
+    }
+}
+
+extension NewPlaceViewController: MapViewControllerDelegate {
+    
+    func getAddress(_ address: String?) {
+        placeLocation.text = address
     }
 }
